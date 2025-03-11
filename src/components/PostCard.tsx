@@ -251,7 +251,7 @@ export default function PostCard({
                         disabled={!newComment.trim() || isCommenting}
                       >
                         {isCommenting ? (
-                          "Posting..."
+                          "Commenting..."
                         ) : (
                           <>
                             <SendIcon className="size-4" />

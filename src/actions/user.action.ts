@@ -99,12 +99,83 @@ export async function getRandomUsers() {
     return [];
   }
 }
+// export async function toggleFollow(targetUserId: string) {
+//   try {
+//     const userId = await getDbUserId();
+//     if (!userId) return;
+
+//     if (userId === targetUserId) throw new Error("Cannot follow yourself");
+//     const existingFollow = await prisma.follows.findUnique({
+//       where: {
+//         followerId_followingId: {
+//           followerId: userId,
+//           followingId: targetUserId,
+//         },
+//       },
+//     });
+//     if (existingFollow) {
+//       // unfollow
+      
+//       // await prisma.follows.delete({
+//       //   where: {
+//       //     followerId_followingId: {
+//       //       followerId: userId,
+//       //       followingId: targetUserId,
+//       //     },
+//       //   },
+//       // });
+//       await prisma.$transaction([
+
+//         await prisma.follows.delete({
+//         where: {
+//           followerId_followingId: {
+//             followerId: userId,
+//             followingId: targetUserId,
+//           },
+//         },
+//       }),
+
+//         prisma.notification.delete({
+//           where: {
+//             type: "FOLLOW",
+//             userId: targetUserId, // user being followed
+//             creatorId: userId, // user following
+//           },
+//         }),
+//       ]);
+//     } else {
+//       // follow
+//       await prisma.$transaction([
+//         prisma.follows.create({
+//           data: {
+//             followerId: userId,
+//             followingId: targetUserId,
+//           },
+//         }),
+
+//         prisma.notification.create({
+//           data: {
+//             type: "FOLLOW",
+//             userId: targetUserId, // user being followed
+//             creatorId: userId, // user following
+//           },
+//         }),
+//       ]);
+//     }
+//     revalidatePath("/");
+//     return { success: true };
+//   } catch (error) {
+//     console.log("Error in toggleFollow", error);
+//     return { success: false, error: "Error following user" };
+//   }
+// }
 export async function toggleFollow(targetUserId: string) {
   try {
     const userId = await getDbUserId();
-    if (!userId) return;
+    if (!userId) return { success: false, error: "User not authenticated" };
 
     if (userId === targetUserId) throw new Error("Cannot follow yourself");
+
     const existingFollow = await prisma.follows.findUnique({
       where: {
         followerId_followingId: {
@@ -113,16 +184,27 @@ export async function toggleFollow(targetUserId: string) {
         },
       },
     });
+
     if (existingFollow) {
       // unfollow
-      await prisma.follows.delete({
-        where: {
-          followerId_followingId: {
-            followerId: userId,
-            followingId: targetUserId,
+      await prisma.$transaction([
+        prisma.follows.delete({
+          where: {
+            followerId_followingId: {
+              followerId: userId,
+              followingId: targetUserId,
+            },
           },
-        },
-      });
+        }),
+
+        prisma.notification.deleteMany({
+          where: {
+            type: "FOLLOW",
+            userId: targetUserId, // user being followed
+            creatorId: userId, // user following
+          },
+        }),
+      ]);
     } else {
       // follow
       await prisma.$transaction([
@@ -142,10 +224,14 @@ export async function toggleFollow(targetUserId: string) {
         }),
       ]);
     }
+
+    // If you're using Next.js or something similar, ensure revalidation works correctly
     revalidatePath("/");
+
     return { success: true };
   } catch (error) {
-    console.log("Error in toggleFollow", error);
+    console.error("Error in toggleFollow:", error); // More specific error logging
     return { success: false, error: "Error following user" };
   }
 }
+

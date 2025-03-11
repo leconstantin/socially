@@ -80,7 +80,7 @@ function ProfilePageClient({
       setIsUpdatingFollow(false);
     }
   };
-
+ 
   const isOwnProfile =
     currentUser?.username === user.username ||
     currentUser?.emailAddresses[0].emailAddress.split("@")[0] === user.username;
